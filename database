@@ -1,0 +1,77 @@
+import sqlite3
+from tkinter import *
+from tkinter import messagebox
+
+# Подключение к базе SQLite
+conn = sqlite3.connect('users.db')
+cursor = conn.cursor()
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL
+)
+''')
+conn.commit()
+
+# Функция регистрации
+def register_user():
+    username = entry_username.get().strip()
+    password = entry_password.get().strip()
+    if not username or not password:
+        messagebox.showwarning("Ошибка", "Пожалуйста, заполните все поля!")
+        return
+    try:
+        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+        conn.commit()
+        messagebox.showinfo("Успех", "Регистрация прошла успешно!")
+        entry_username.delete(0, END)
+        entry_password.delete(0, END)
+    except sqlite3.IntegrityError:
+        messagebox.showerror("Ошибка", "Пользователь с таким именем уже существует!")
+
+# Функция авторизации
+def login_user():
+    username = entry_username.get().strip()
+    password = entry_password.get().strip()
+    cursor.execute("SELECT * FROM users WHERE username=? AND password=?", (username, password))
+    if cursor.fetchone():
+        messagebox.showinfo("Успех", f"Добро пожаловать, {username}!")
+        entry_username.delete(0, END)
+        entry_password.delete(0, END)
+    else:
+        messagebox.showerror("Ошибка", "Неверное имя пользователя или пароль.")
+
+# Создаем главное окно
+root = Tk()
+root.title("Регистрация и Авторизация")
+root.geometry("350x250")
+root.resizable(False, False)
+
+# Заголовок
+Label(root, text="Добро пожаловать!", font=("Arial", 16)).pack(pady=10)
+
+# Метка и поле для имени пользователя
+Label(root, text="Имя пользователя:", font=("Arial", 12)).pack(pady=(10, 0))
+entry_username = Entry(root, font=("Arial", 12))
+entry_username.pack(pady=(0, 10), ipadx=50)
+
+# Метка и поле для пароля
+Label(root, text="Пароль:", font=("Arial", 12)).pack(pady=(10, 0))
+entry_password = Entry(root, show="*", font=("Arial", 12))
+entry_password.pack(pady=(0, 20), ipadx=50)
+
+# Кнопки для регистрации и входа
+frame_buttons = Frame(root)
+frame_buttons.pack()
+
+btn_register = Button(frame_buttons, text="Зарегистрироваться", width=15, command=register_user)
+btn_register.grid(row=0, column=0, padx=10)
+
+btn_login = Button(frame_buttons, text="Войти", width=15, command=login_user)
+btn_login.grid(row=0, column=1, padx=10)
+
+root.mainloop()
+
+# Закрываем соединение с базой данных при выходе
+conn.close()
